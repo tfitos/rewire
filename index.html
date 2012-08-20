@@ -49,15 +49,12 @@
         <p>rewire adds a special setter and getter to modules so you can modify their behaviour for better unit testing. You may</p>
 
 <ul>
-<li>introduce mocks for other modules</li>
+<li>inject mocks for other modules</li>
 <li>leak private variables</li>
 <li>override variables within the module.</li>
 </ul><p>rewire does <strong>not</strong> load the file and eval the contents to emulate node's require mechanism. In fact it uses node's own require to load the module. Thus your module behaves exactly the same in your test environment as under regular circumstances (except your modifications).</p>
 
-<p><strong>Debugging is fully supported.</strong></p>
-
-<p>Furthermore rewire comes also with support for <a href="https://github.com/substack/node-browserify">browserify</a>. You just
-have to add rewire as a middleware (see below).</p>
+<p>Furthermore rewire comes also with support for various client-side bundlers (see <a href="#client-side-bundlers">below</a>).</p>
 
 <p><a href="http://travis-ci.org/jhnns/rewire"><img src="https://secure.travis-ci.org/jhnns/rewire.png?branch=master" alt="Build Status"></a></p>
 
@@ -67,34 +64,18 @@ have to add rewire as a middleware (see below).</p>
 
 <p><code>npm install rewire</code></p>
 
-<p><strong>For older node versions:</strong><br>
-rewire is tested with node 0.6.x - 0.8.x. I recommend to run the unit tests via <code>mocha</code> in the rewire-folder before
-using rewire with other node versions.</p>
-
-<p><strong>Use with <a href="https://github.com/substack/node-browserify">browserify</a>:</strong><br></p>
-
-<div class="highlight">
-<pre><span class="kd">var</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">"browserify"</span><span class="p">)({</span><span class="nx">debug</span><span class="o">:</span> <span class="kc">true</span><span class="p">});</span>
-
-<span class="nx">b</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"rewire"</span><span class="p">).</span><span class="nx">browserify</span><span class="p">);</span>
-</pre>
-</div>
-
-
-<p>After that rewire works exactly as in node.</p>
-
 <p><br></p>
 
 <h2>Examples</h2>
 
-<div class="highlight">
-<pre><span class="kd">var</span> <span class="nx">rewire</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">"rewire"</span><span class="p">);</span>
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">rewire</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">"rewire"</span><span class="p">);</span>
 
 
 <span class="c1">// rewire acts exactly like require.</span>
 <span class="kd">var</span> <span class="nx">myModule</span> <span class="o">=</span> <span class="nx">rewire</span><span class="p">(</span><span class="s2">"../lib/myModule.js"</span><span class="p">);</span>
 
 
+<span class="c1">// Just with one difference:</span>
 <span class="c1">// Your module will now export a special setter and getter for private variables.</span>
 <span class="nx">myModule</span><span class="p">.</span><span class="nx">__set__</span><span class="p">(</span><span class="s2">"myPrivateVar"</span><span class="p">,</span> <span class="mi">123</span><span class="p">);</span>
 <span class="nx">myModule</span><span class="p">.</span><span class="nx">__get__</span><span class="p">(</span><span class="s2">"myPrivateVar"</span><span class="p">);</span> <span class="c1">// = 123</span>
@@ -110,10 +91,6 @@ using rewire with other node versions.</p>
 <span class="nx">myModule</span><span class="p">.</span><span class="nx">readSomethingFromFileSystem</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
     <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span> <span class="c1">// = Success!</span>
 <span class="p">});</span>
-
-
-<span class="c1">// All later requires will now return the module with the mock.</span>
-<span class="nx">myModule</span> <span class="o">===</span> <span class="nx">require</span><span class="p">(</span><span class="s2">"./myModule.js"</span><span class="p">);</span> <span class="c1">// = true</span>
 
 
 <span class="c1">// You can set different variables with one call.</span>
@@ -140,70 +117,61 @@ using rewire with other node versions.</p>
 <span class="c1">// console instance.</span>
 <span class="nx">myModule</span><span class="p">.</span><span class="nx">__set__</span><span class="p">(</span><span class="s2">"console.log"</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span> <span class="cm">/* be quiet */</span> <span class="p">});</span>
 
-
-<span class="c1">// By getting private variables you can test for instance if your</span>
-<span class="c1">// module is in a specific state</span>
-<span class="nx">assert</span><span class="p">.</span><span class="nx">ok</span><span class="p">(</span><span class="nx">myModule</span><span class="p">.</span><span class="nx">__get__</span><span class="p">(</span><span class="s2">"currentState"</span><span class="p">)</span> <span class="o">===</span> <span class="s2">"idle"</span><span class="p">);</span>
-
-
-<span class="c1">// You can also disable caching when loading the rewired module. All</span>
-<span class="c1">// subsequent calls of require() will than return the original module again.</span>
-<span class="nx">rewire</span><span class="p">(</span><span class="s2">"./myModule.js"</span><span class="p">)</span> <span class="o">===</span> <span class="nx">require</span><span class="p">(</span><span class="s2">"./myModule.js"</span><span class="p">);</span> <span class="c1">// = true</span>
-<span class="nx">rewire</span><span class="p">(</span><span class="s2">"./myModule.js"</span><span class="p">,</span> <span class="kc">false</span><span class="p">)</span> <span class="o">===</span> <span class="nx">require</span><span class="p">(</span><span class="s2">"./myModule.js"</span><span class="p">);</span> <span class="c1">// = false</span>
-
-
-<span class="c1">// Every call of rewire returns a new instance and overwrites the old</span>
-<span class="c1">// one in the module cache.</span>
+<span class="c1">// There is another difference to require:</span>
+<span class="c1">// Every call of rewire() returns a new instance.</span>
 <span class="nx">rewire</span><span class="p">(</span><span class="s2">"./myModule.js"</span><span class="p">)</span> <span class="o">===</span> <span class="nx">rewire</span><span class="p">(</span><span class="s2">"./myModule.js"</span><span class="p">);</span> <span class="c1">// = false</span>
-
-
-<span class="c1">// If you want to remove all your rewired modules from</span>
-<span class="c1">// cache just call rewire.reset().</span>
-<span class="c1">// Do this after every single unit test to ensure a clean testing environment.</span>
-<span class="nx">rewire</span><span class="p">.</span><span class="nx">reset</span><span class="p">();</span>
-</pre>
-</div>
-
+</pre></div>
 
 <p><br></p>
 
 <h2>API</h2>
 
-<p><strong>rewire(</strong><em>filename, cache</em><strong>): {RewiredModule}</strong></p>
-
-<ul>
-<li><p><em>{!String} filename</em>: <br>
-Path to the module that shall be rewired. Use it exactly like require().</p></li>
-<li><p><em>{Boolean=true} cache (optional)</em>: <br>
-Indicates whether the rewired module should be cached by node so subsequent calls of <code>require()</code> will
-return the rewired module. Further calls of <code>rewire()</code> will always overwrite the cache.</p></li>
-</ul><p><strong>rewire.reset()</strong></p>
-
-<p>Removes all rewired modules from <code>require.cache</code>. Every <code>require()</code> will now return the original module again.</p>
-
-<p><strong>RewiredModule.__set__(</strong><em>name, value</em><strong>)</strong></p>
-
-<ul>
-<li><p><em>{!String} name</em>: <br>
-Name of the variable to set. The variable should be a global or defined with <code>var</code> in the top-level
-scope of the module.</p></li>
-<li><p><em>{∗} value</em>: <br>
-The value to set</p></li>
-</ul><p><strong>RewiredModule.__set__(</strong><em>env</em><strong>)</strong></p>
+<h3>rewire(filename): rewiredModule</h3>
 
 <ul>
 <li>
-<em>{!Object} env</em>: <br>
+<em>filename</em>: <br>
+Path to the module that shall be rewired. Use it exactly like require().</li>
+</ul><h3>rewiredModule.__set__(name, value)</h3>
+
+<ul>
+<li>
+<em>name</em>: <br>
+Name of the variable to set. The variable should be global or defined with <code>var</code> in the top-leve scope of the module.</li>
+<li>
+<em>value</em>: <br>
+The value to set.</li>
+</ul><h3>rewiredModule.__set__(env)</h3>
+
+<ul>
+<li>
+<em>env</em>: <br>
 Takes all keys as variable names and sets the values respectively.</li>
-</ul><p><strong>RewiredModule.__get__(</strong><em>name</em><strong>): {∗}</strong></p>
+</ul><h3>rewiredModule.__get__(name): value</h3>
 
 <p>Returns the private variable.</p>
 
 <p><br></p>
 
-<h2>Credits</h2>
+<h2>Client-Side Bundlers</h2>
 
-<p>This module is inspired by the great <a href="https://github.com/nathanmacinnes/injectr" title="injectr">injectr</a>-module.</p>
+<p>Since rewire relies heavily on node's require mechanism it can't be used on the client-side without adding special middleware to the bundling process. Currently supported bundlers are:</p>
+
+<ul>
+<li><a href="https://github.com/substack/node-browserify">browserify</a></li>
+<li><a href="https://github.com/webpack/webpack">webpack</a></li>
+</ul><h3>browserify</h3>
+
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">browserify</span><span class="p">();</span>
+<span class="nx">b</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"rewire"</span><span class="p">).</span><span class="nx">bundlers</span><span class="p">.</span><span class="nx">browserify</span><span class="p">);</span>
+</pre></div>
+
+<h3>webpack</h3>
+
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{};</span>
+
+<span class="nx">require</span><span class="p">(</span><span class="s2">"rewire"</span><span class="p">).</span><span class="nx">bundlers</span><span class="p">.</span><span class="nx">webpack</span><span class="p">(</span><span class="nx">options</span><span class="p">);</span>
+</pre></div>
       </section>
 
       <footer>
